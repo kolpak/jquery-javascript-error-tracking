@@ -1,36 +1,59 @@
-$(document).ready(function(){
-	// store onerror into qwx.clientInfo.events
-	bindWindowEvents();
+(function() {
+	var root = this;
+	
+	var clientInfo = {
+		'timer'			: null,
+		'events'		: [],
+		'lastNotified'	: (new Date()).toString()
+	};
 
-	// and every 10sec (default) send qwx.clientInfo.events to server (if exists)
-	startWindowEventsWatcher();
-
-	//
-	function getClientInfo() {
-		if (!window.qwx || !window.qwx.clientInfo) {
-			if (!window.qwx) {
-				window.qwx = {};
-			}
-			window.qwx.clientInfo = {
-				'timer'			: null,
-				'events'		: [],
-				'lastNotified'	: (new Date()).toString()
-			};
-		}
-		return window.qwx.clientInfo;
-	}
-	function saveClientEvent(type, data) {
-		getClientInfo().events.push({
-			'type'	: type,
-			'date'	: (new Date()).toString(),
-			'data'	: data
+	var errtrack = function(obj) {
+		if (obj instanceof _) return obj;
+		if (!(this instanceof _)) return new _(obj);
+		this._wrapped = obj;
+	};
+	
+	root.errtrack = errtrack;
+	
+	errtrack.pushEvent = function(type, data) {
+		clientInfo.events.push({
+			'date'		: (new Date()).toString(),
+			'online'	: (navigator.onLine ? 1 : 0),
+			'type'		: type,
+			'data'		: data
 		});
-	}
-	function bindWindowEvents() {
+		
+		return 1;
+	};
+	errtrack.push = function() {
+		var type = 'error', str;
+		if (arguments.length > 0) {
+			type = arguments[0];
+			str = arguments[1];
+		} else {
+			str = arguments[0];
+		}
+		if (!str) {
+			return;
+		}
+		return errtrack.pushEvent(type, str);
+	};
+	
+	
+	errtrack.renew = function(){
+		clientInfo.events = [];
+		clientInfo.lastNotified = (new Date()).toString();
+
+		return 1;
+	};
+	
+	// store onerror into clientInfo.events
+	errtrack.bind_window_events = function() {
+
 		if (typeof(window.onerror) != "undefined") {
 			window.onerror = function (msg, url, line) {
 				if (url && url.indexOf('chrome://') != 0) {
-					saveClientEvent('error', {  
+					errtrack.pushEvent('error', {  
 						'message'	: msg,
 						'url'		: url,
 						'doc'		: window.location.toString(),
@@ -40,7 +63,7 @@ $(document).ready(function(){
 			};
 		}
 		$(document).ajaxError(function(event, jqXHR, ajaxSettings, thrownError){
-			saveClientEvent('ajax-error', {  
+			errtrack.pushEvent('ajax-error', {  
 				'message'		: thrownError ? thrownError.toString() : null,
 				'url'			: ajaxSettings.url,
 				'data'			: ajaxSettings.data,
@@ -51,15 +74,19 @@ $(document).ready(function(){
 				'doc'			: window.location.toString()
 			});
 		});
-	}
-	function startWindowEventsWatcher(interval) {
-		interval = interval || 10000;
 
-		var notifer;
-		if (getClientInfo().timer) {
+		return 1;
+	};
+	
+	// every 10sec (default) send clientInfo.events to server (if exists)
+	errtrack.watch = function(interval){
+		if (clientInfo.timer) {
 			return;
 		}
 
+		interval = interval || 10000;
+
+		var notifier;
 		notifier = function () {
 			/*	if errors:
 					send data:
@@ -69,33 +96,40 @@ $(document).ready(function(){
 				unless errors:
 					set timeout for next action
 			*/
-			if (getClientInfo().events.length) {
+			if (clientInfo.events.length) {
 				$.post('/errtrack',
 					{
 						'cookie'	: document.cookie,
 						'browser'	: window.navigator.userAgent,
-						'events'	: JSON.stringify(getClientInfo().events, null, 4)
+						'events'	: JSON.stringify(clientInfo.events, null, 4)
 					},
 					function(data) {
 						if (data.ok) {
-							var ci = getClientInfo();
-							ci.events = [];
-							ci.lastNotified = (new Date()).toString();
-						} else {
-							//	?
+							errtrack.renew();
 						}
 					},
 					'json'
-				).fail(function(){
-					//	?
-				}).always(function () {
-					getClientInfo().timer = setTimeout(notifier, interval);
-                });
+				).always(function () {
+					clientInfo.timer = setTimeout(notifier, interval);
+				});
 			} else {
-				getClientInfo().timer = setTimeout(notifier, interval);
+				clientInfo.timer = setTimeout(notifier, interval);
 			}
 		};   
 
 		notifier();
-	}
+		return 1;
+	};
+	
+	errtrack.bind = function(){
+		errtrack.bind_window_events();
+		errtrack.watch();
+
+		return 1;
+	};
+	
+}).call(this);
+
+$(document).ready(function(){
+	errtrack.bind();
 });
