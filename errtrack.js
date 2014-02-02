@@ -1,6 +1,6 @@
 (function() {
-	var root = this;
-	
+	var root = this;	
+
 	var clientInfo = {
 		'timer'			: null,
 		'events'		: [],
@@ -22,8 +22,6 @@
 			'type'		: type,
 			'data'		: data
 		});
-		
-		return 1;
 	};
 	errtrack.push = function() {
 		var type = 'error', str;
@@ -43,8 +41,6 @@
 	errtrack.renew = function(){
 		clientInfo.events = [];
 		clientInfo.lastNotified = (new Date()).toString();
-
-		return 1;
 	};
 	
 	// store onerror into clientInfo.events
@@ -74,8 +70,6 @@
 				'doc'			: window.location.toString()
 			});
 		});
-
-		return 1;
 	};
 	
 	// every 10sec (default) send clientInfo.events to server (if exists)
@@ -118,18 +112,15 @@
 		};   
 
 		notifier();
-		return 1;
 	};
 	
-	errtrack.bind = function(){
+	errtrack.on = function(){
 		errtrack.bind_window_events();
 		errtrack.watch();
-
-		return 1;
 	};
 	
 }).call(this);
 
 $(document).ready(function(){
-	errtrack.bind();
+	errtrack.on();
 });
