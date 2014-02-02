@@ -114,9 +114,9 @@
 		notifier();
 	};
 	
-	errtrack.on = function(){
+	errtrack.on = function(opts){
 		errtrack.bind_window_events();
-		errtrack.watch();
+		errtrack.watch(opts ? opts.interval : null);
 	};
 	
 }).call(this);
