@@ -49,7 +49,7 @@
 		if (typeof(window.onerror) != "undefined") {
 			window.onerror = function (msg, url, line) {
 				if (url && url.indexOf('chrome://') != 0) {
-					errtrack.pushEvent('error', {  
+					errtrack.pushEvent('error', {
 						'message'	: msg,
 						'url'		: url,
 						'doc'		: window.location.toString(),
@@ -59,16 +59,18 @@
 			};
 		}
 		$(document).ajaxError(function(event, jqXHR, ajaxSettings, thrownError){
-			errtrack.pushEvent('ajax-error', {  
-				'message'		: thrownError ? thrownError.toString() : null,
-				'url'			: ajaxSettings.url,
-				'data'			: ajaxSettings.data,
-				'type'			: ajaxSettings.type,
-				'dataType'		: ajaxSettings.dataType,
-				'status'		: jqXHR.status,
-				'statusText'	: jqXHR.statusText,
-				'doc'			: window.location.toString()
-			});
+			if (jqXHR.statusText != 'abort') {
+				errtrack.pushEvent('ajax-error', {
+					'message'		: thrownError ? thrownError.toString() : null,
+					'url'			: ajaxSettings.url,
+					'data'			: ajaxSettings.data,
+					'type'			: ajaxSettings.type,
+					'dataType'		: ajaxSettings.dataType,
+					'status'		: jqXHR.status,
+					'statusText'	: jqXHR.statusText,
+					'doc'			: window.location.toString()
+				});
+			}
 		});
 	};
 	
@@ -109,7 +111,7 @@
 			} else {
 				clientInfo.timer = setTimeout(notifier, interval);
 			}
-		};   
+		};
 
 		notifier();
 	};
