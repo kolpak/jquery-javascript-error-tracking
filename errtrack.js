@@ -23,7 +23,7 @@
 			'data'		: data
 		});
 	};
-	errtrack.push = function() {
+	errtrack.notify = function() {
 		var type = 'error', str;
 		if (arguments.length > 0) {
 			type = arguments[0];
