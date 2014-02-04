@@ -75,12 +75,13 @@
 	};
 	
 	// every 10sec (default) send clientInfo.events to server (if exists)
-	errtrack.watch = function(interval){
+	errtrack.watch = function(opts){
 		if (clientInfo.timer) {
 			return;
 		}
+		opts = opts || {};
 
-		interval = interval || 10000;
+		interval = opts.interval || 10000;
 
 		var notifier;
 		notifier = function () {
@@ -93,7 +94,7 @@
 					set timeout for next action
 			*/
 			if (clientInfo.events.length) {
-				$.post('/errtrack',
+				$.post(opts.path || '/errtrack',
 					{
 						'cookie'	: document.cookie,
 						'browser'	: window.navigator.userAgent,
@@ -118,7 +119,7 @@
 	
 	errtrack.on = function(opts){
 		errtrack.bind_window_events();
-		errtrack.watch(opts ? opts.interval : null);
+		errtrack.watch(opts);
 	};
 	
 }).call(this);
