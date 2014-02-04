@@ -1,3 +1,10 @@
+/*
+	errtrack.notify				:
+	errtrack.pushEvent			:
+	errtrack.bind_window_events	:
+	errtrack.watch				:
+	errtrack.on					:
+*/
 (function() {
 	var root = this;	
 
