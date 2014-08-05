@@ -1,13 +1,21 @@
 /*
-	errtrack.notify				:
-	errtrack.pushEvent			:
-	errtrack.bind_window_events	:
-	errtrack.watch				:
-	errtrack.on					:
+	tracking javascript errors
+
+		qwx.errtrack.notify		: упрощённое - кладёт сообщение об ошибках в очередь отправки
+		qwx.errtrack.pushEvent	: полное - кладёт сообщение об ошибках в очередь отправки
+		qwx.errtrack.on			: включает трекинг (включен по умолчанию)
+
+		qwx.errtrack._bind_window_events	: навешивает обработчики событий для отлова ошибок
+		qwx.errtrack._watch					: каждые 10 секунд посылает на сервер информацию об ошибках
+		qwx.errtrack._renew					: стирает отправленную информацию
+
 */
 (function() {
-	var root = this;	
-
+	var root = this;
+	
+	/*
+		коллекция произошедших событий
+	*/
 	var clientInfo = {
 		'timer'			: null,
 		'events'		: [],
@@ -19,14 +27,12 @@
 		if (!(this instanceof _)) return new _(obj);
 		this._wrapped = obj;
 	};
-	
 	root.errtrack = errtrack;
 	
 	errtrack.pushEvent = function(type, data) {
 		clientInfo.events.push({
 			'date'		: (new Date()).toString(),
-			'online'	: (navigator.onLine ? 1 : 0),
-			'type'		: type,
+			'type'	: type,
 			'data'		: data
 		});
 	};
@@ -45,21 +51,20 @@
 	};
 	
 	
-	errtrack.renew = function(){
+	errtrack._renew = function(){
 		clientInfo.events = [];
 		clientInfo.lastNotified = (new Date()).toString();
 	};
-	
-	// store onerror into clientInfo.events
-	errtrack.bind_window_events = function() {
 
-		if (typeof(window.onerror) != "undefined") {
-			window.onerror = function (msg, url, line) {
+	// store onerror into clientInfo.events
+	errtrack._bind_window_events = function() {
+		if (typeof(root.onerror) != "undefined") {
+			root.onerror = function (msg, url, line) {
 				if (url && url.indexOf('chrome://') != 0) {
 					errtrack.pushEvent('error', {
 						'message'	: msg,
 						'url'		: url,
-						'doc'		: window.location.toString(),
+						'doc'		: root.location.toString(),
 						'line'		: line
 					});
 				}
@@ -75,19 +80,19 @@
 					'dataType'		: ajaxSettings.dataType,
 					'status'		: jqXHR.status,
 					'statusText'	: jqXHR.statusText,
-					'doc'			: window.location.toString()
+					'doc'			: root.location.toString()
 				});
 			}
 		});
 	};
 	
 	// every 10sec (default) send clientInfo.events to server (if exists)
-	errtrack.watch = function(opts){
+	errtrack._watch = function(opts){
 		if (clientInfo.timer) {
 			return;
 		}
-		opts = opts || {};
 
+		!opts	&& (opts = {});
 		interval = opts.interval || 10000;
 
 		var notifier;
@@ -101,19 +106,23 @@
 					set timeout for next action
 			*/
 			if (clientInfo.events.length) {
-				$.post(opts.path || '/errtrack',
-					{
+				$.ajax({
+					'type'		: 'POST',
+					'global'	: false,
+					'dataType'	: 'json',
+					'url'		: opts.path || '/errtrack',
+					'data'		: {
 						'cookie'	: document.cookie,
-						'browser'	: window.navigator.userAgent,
+						'browser'	: root.navigator.userAgent,
 						'events'	: JSON.stringify(clientInfo.events, null, 4)
 					},
-					function(data) {
-						if (data.ok) {
-							errtrack.renew();
-						}
-					},
-					'json'
-				).always(function () {
+				})
+				.done(function(data){
+					if (data.ok) {
+						errtrack._renew(clientInfo.events);
+					}
+				})
+				.always(function () {
 					clientInfo.timer = setTimeout(notifier, interval);
 				});
 			} else {
@@ -125,8 +134,8 @@
 	};
 	
 	errtrack.on = function(opts){
-		errtrack.bind_window_events();
-		errtrack.watch(opts);
+		errtrack._bind_window_events(opts);
+		errtrack._watch(opts);
 	};
 	
 }).call(this);
