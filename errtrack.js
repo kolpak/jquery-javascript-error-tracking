@@ -32,7 +32,7 @@
 	errtrack.pushEvent = function(type, data) {
 		clientInfo.events.push({
 			'date'		: (new Date()).toString(),
-			'type'	: type,
+			'type'		: type,
 			'data'		: data
 		});
 	};
@@ -115,7 +115,7 @@
 						'cookie'	: document.cookie,
 						'browser'	: root.navigator.userAgent,
 						'events'	: JSON.stringify(clientInfo.events, null, 4)
-					},
+					}
 				})
 				.done(function(data){
 					if (data.ok) {
